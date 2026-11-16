@@ -3,7 +3,7 @@
 Detects fake, duplicated and unverifiable beneficiaries in aid programs,
 and produces a tamper-evident audit trail for every payout.
 
-**Final year project.** Django 5.2 - PostgreSQL/SQLite - Python 3.12 - RapidFuzz - WeasyPrint - Chart.js.
+**.** Django 5.2 - PostgreSQL/SQLite - Python 3.12 - RapidFuzz - WeasyPrint - Chart.js.
 
 ## Problem
 
