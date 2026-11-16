@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Disbursement Portfolio{% endblock %}
+{% block content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1>Disbursement Portfolio</h1>
+    <p class="muted">Manage payouts across all active relief programs.</p>
+  </div>
+  <a href="/admin/programs/program/add/" class="btn-secondary">+ New Program</a>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Program</th>
+        <th>Amount Requested</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for round in rounds %}
+        <tr>
+          <td>
+            <strong style="color: var(--text-1); font-size: 1.05rem;">{{ round.program.name }}</strong><br>
+            <span class="muted" style="font-size: 0.8rem;">{{ round.program.donor }}</span>
+          </td>
+          <td class="mono">KSh {{ round.amount|floatformat:2 }}</td>
+          <td>
+            {% if round.status == 'DRAFT' %}
+              <span class="pill pill-draft">Draft</span>
+            {% elif round.status == 'APPROVED' %}
+              <span class="pill pill-approved">Approved</span>
+            {% else %}
+              <span class="pill pill-locked">Locked</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'programs:round_detail' round.pk %}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">
+              {% if round.status == 'APPROVED' %}Manage & Pay{% else %}View Details{% endif %}
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="muted" style="text-align: center; padding: 40px;">
+            No rounds yet. Create a program in the admin to get started.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

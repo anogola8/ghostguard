@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Payment Receipt{% endblock %}
+{% block content %}
+
+<div style="max-width: 420px; margin: 40px auto;">
+  <div style="text-align: center; margin-bottom: 20px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.1); border: 1px solid var(--success); padding: 6px 14px; border-radius: 999px;">
+      <span style="color: var(--success); font-weight: 700; font-size: 0.85rem;">✓ PAYMENT CONFIRMED</span>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 28px;">
+    <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px dashed var(--card-border);">
+      <div class="stat-label">Amount Received</div>
+      <div style="font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(135deg, #fff, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        KSh {{ payout.amount|floatformat:2 }}
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span class="muted">Date</span>
+        <span style="font-weight: 600;">{{ payout.paid_at|date:"Y-m-d H:i" }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span class="muted">Beneficiary</span>
+        <span class="mono" style="font-weight: 600;">{{ payout.beneficiary.public_id }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span class="muted">Program</span>
+        <span style="font-weight: 600;">{{ payout.round.program.name }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span class="muted">Reference</span>
+        <span class="mono" style="font-size: 0.85rem;">{{ payout.reference }}</span>
+      </div>
+    </div>
+
+    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 14px; margin-top: 20px;">
+      <div style="font-size: 0.7rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px;">Receipt Hash (SHA-256)</div>
+      <div class="mono" style="font-size: 0.7rem; color: var(--text-2); word-break: break-all;">{{ receipt_hash }}</div>
+    </div>
+
+    <p style="font-size: 0.72rem; color: var(--text-3); margin-top: 16px; text-align: center;">
+      This receipt is cryptographically linked to the GhostGuard audit chain. Present it to verify your payment.
+    </p>
+  </div>
+
+  <p style="text-align: center; margin-top: 20px;">
+    <a href="{% url 'beneficiaries:public_card' payout.beneficiary.public_id %}" class="muted" style="text-decoration: none;">← Back to your card</a>
+  </p>
+</div>
+
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Review Flags{% endblock %}
+{% block content %}
+
+<h1>Flag Review Queue</h1>
+<p class="muted">Resolve suspected duplicates or block fraudulent records. All actions are logged.</p>
+
+<style>
+  .flag-card { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .flag-actions { display: flex; flex-direction: column; gap: 8px; margin-left: 24px; min-width: 180px; }
+  .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .record-box { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); border-radius: 8px; padding: 16px; }
+  .record-box h4 { margin: 0 0 12px 0; font-size: 1rem; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+  .field-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+  .field-label { color: var(--text-2); }
+  .field-value { font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .match-highlight { color: var(--danger); border-bottom: 1px dashed var(--danger); }
+  .match-exact { color: var(--danger); font-weight: bold; }
+  .match-fuzzy { color: var(--warning); font-weight: bold; }
+  .match-context { color: #a5a8ff; font-weight: bold; }
+  
+  /* Drawer styles */
+  dialog { 
+    background: var(--bg-1); 
+    color: var(--text-1); 
+    border: 1px solid var(--card-border); 
+    border-radius: 12px; 
+    padding: 24px; 
+    width: 90%; 
+    max-width: 900px; 
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+  .dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .close-btn { background: none; border: none; color: var(--text-2); font-size: 1.5rem; cursor: pointer; }
+  .close-btn:hover { color: white; }
+
+  .diff-highlight {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    font-weight: 700;
+  }
+
+  .diff-highlight {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    font-weight: 700;
+  }
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
+  {% for b in flagged %}
+    <div class="card flag-card">
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 1.2rem;">{{ b.full_name }}</h2>
+          <span class="pill pill-flagged">Flagged</span>
+        </div>
+        <p class="muted" style="margin-bottom: 12px;">{{ b.phone }} · {{ b.village }} · Program: {{ b.program.name }}</p>
+        
+        <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-size: 0.85rem;">
+          {% for f in b.enriched_flags %}
+            <div style="margin-bottom: 4px; display: flex; gap: 8px; align-items: center;">
+              <span class="pill" style="background: rgba(239,68,68,0.2); color: #fca5a5; font-size: 0.7rem;">{{ f.raw.layer }}</span>
+              <span style="color: var(--text-2);">{{ f.raw.reason|truncatechars:50 }}</span>
+            </div>
+          {% endfor %}
+          <div style="margin-top: 12px;">
+            <button onclick="openInvestigation('{{ b.id }}')" class="btn-secondary" style="padding: 4px 12px; font-size: 0.75rem;">
+              🔍 View Side-by-Side Diff
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flag-actions">
+
+        
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="beneficiary_id" value="{{ b.id }}">
+          <button type="submit" name="action" value="RESOLVE" class="btn-secondary" style="width: 100%; border-color: var(--success); color: var(--success);">✓ Mark as Clear</button>
+        </form>
+        
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="beneficiary_id" value="{{ b.id }}">
+          <button type="submit" name="action" value="DISMISS" style="width: 100%; background: rgba(239,68,68,0.1); box-shadow: none; border: 1px solid var(--danger); color: var(--danger);">✗ Block Record</button>
+        </form>
+      </div>
+    </div>
+  {% empty %}
+    <div class="card" style="text-align: center; padding: 40px;">
+      <h2 style="color: var(--success);">✓ Queue Empty</h2>
+      <p class="muted">All flags have been resolved.</p>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- The Investigation Dialog (hidden by default) -->
+<dialog id="investigationDialog">
+  <div class="dialog-header">
+    <h3 id="dialogTitle" style="margin: 0;">Investigating Flag...</h3>
+    <button class="close-btn" onclick="document.getElementById('investigationDialog').close()">×</button>
+  </div>
+  <div id="dialogContent">
+    <!-- Populated by JavaScript -->
+  </div>
+</dialog>
+
+<script>
+  // We pass the enriched flags to JavaScript via a data attribute
+  const flaggedData = {
+    {% for b in flagged %}
+      "{{ b.id }}": {
+        "name": "{{ b.full_name|escapejs }}",
+        "phone": "{{ b.phone|escapejs }}",
+        "village": "{{ b.village|escapejs }}",
+        "flags": [
+          {% for f in b.enriched_flags %}
+            {
+              "layer": "{{ f.raw.layer }}",
+              "reason": "{{ f.raw.reason|escapejs }}",
+              "matched": {% if f.matched_record %}{
+                "name": "{{ f.matched_record.full_name|escapejs }}",
+                "phone": "{{ f.matched_record.phone|escapejs }}",
+                "village": "{{ f.matched_record.village|escapejs }}",
+                "program": "{{ f.matched_record.program.name|escapejs }}"
+              }{% else %}null{% endif %}
+            }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ]
+      }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  };
+
+  function openInvestigation(id) {
+    const data = flaggedData[id];
+    if (!data) return;
+
+    document.getElementById('dialogTitle').innerText = 'Investigating: ' + data.name;
+    
+    let html = '';
+    data.flags.forEach(flag => {
+      html += `<div style="margin-bottom: 24px;">
+        <div style="font-size: 1rem; margin-bottom: 8px;">
+          <strong>Rule Triggered:</strong> <span class="match-${flag.layer.toLowerCase()}">[${flag.layer}]</span> ${flag.reason}
+        </div>
+        <div class="comparison-grid">
+          <div class="record-box">
+            <h4 style="color: var(--danger);">Suspected Record</h4>
+            <div class="field-row"><span class="field-label">Name:</span> <span class="field-value">${data.name}</span></div>
+            <div class="field-row"><span class="field-label">Phone:</span> <span class="field-value ${flag.layer === 'EXACT' ? 'match-highlight' : ''}">${data.phone}</span></div>
+            <div class="field-row"><span class="field-label">Village:</span> <span class="field-value">${data.village}</span></div>
+          </div>
+          <div class="record-box">
+            <h4 style="color: var(--success);">Matched Existing Record</h4>
+            ${flag.matched ? `
+              <div class="field-row"><span class="field-label">Name:</span> <span class="field-value ${flag.layer === 'FUZZY' ? 'match-highlight' : ''}">${flag.matched.name}</span></div>
+              <div class="field-row"><span class="field-label">Phone:</span> <span class="field-value ${flag.layer === 'EXACT' ? 'match-highlight' : ''}">${flag.matched.phone}</span></div>
+              <div class="field-row"><span class="field-label">Village:</span> <span class="field-value">${flag.matched.village}</span></div>
+              <div class="field-row"><span class="field-label">Program:</span> <span class="field-value">${flag.matched.program}</span></div>
+            ` : `<div class="muted">No specific record matched. This is an anomaly flag (e.g., shared phone across multiple records).</div>`}
+          </div>
+        </div>
+      </div>`;
+    });
+
+    document.getElementById('dialogContent').innerHTML = html;
+    document.getElementById('investigationDialog').showModal();
+  }
+</script>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+{% block content %}
+
+<div style="max-width: 640px; margin: 0 auto;">
+  <div style="margin-bottom: 32px;">
+    <h1>System Configuration</h1>
+    <p class="muted">Manage global detection thresholds and platform settings.</p>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 24px;">
+        <label for="fuzzy_threshold">Fuzzy Match Threshold</label>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <input type="range" name="fuzzy_threshold" id="fuzzy_threshold" min="0.70" max="0.99" step="0.01" value="{{ settings.fuzzy_threshold }}" style="flex: 1;" oninput="document.getElementById('threshold_value').innerText = parseFloat(this.value).toFixed(2)">
+          <span id="threshold_value" style="font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--accent); min-width: 60px; text-align: right;">
+            {{ settings.fuzzy_threshold|floatformat:2 }}
+          </span>
+        </div>
+        <div class="muted" style="font-size: 0.85rem; margin-top: 12px;">
+          Lower values catch more fraud (higher recall) but increase false positives. Higher values are stricter (higher precision). Default is 0.90.
+        </div>
+      </div>
+
+      <button type="submit" style="width: 100%; padding: 14px;">Save Configuration</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top: 24px; border-color: var(--warning); background: linear-gradient(180deg, rgba(245,158,11,0.05) 0%, rgba(0,0,0,0) 100%);">
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+      <span style="font-size: 1.5rem;">⚠️</span>
+      <div>
+        <h3 style="margin: 0 0 8px 0; color: var(--warning);">Audit Notice</h3>
+        <p class="muted" style="font-size: 0.9rem; margin: 0;">
+          Changing this threshold will affect all future registrations. Every change is written to the tamper-evident audit chain and cannot be deleted.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px;">
+    <a href="{% url 'dashboard:index' %}" class="muted" style="text-decoration: none;">← Back to Dashboard</a>
+  </div>
+</div>
+
+{% endblock %}

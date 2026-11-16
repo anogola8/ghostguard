@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+.env
+.env.*
+!.env.example
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Temp scripts (the ones we generated during dev)
+force_tamper.py
+tamper.py
+seed_chain.py
+verify.py
+check.py
+v.py
+health_check.py
+hack_test.py
+pentest_tamper.py
+trigger.py
+verify_ack.py
+test_bulk.csv
+test_duplicate.csv
+bulk_test.csv
+
+# Alerts and runtime data
+alerts/

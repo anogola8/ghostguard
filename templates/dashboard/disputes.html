@@ -1,0 +1,65 @@
+﻿{% extends "base.html" %}
+{% block title %}Dispute Resolution{% endblock %}
+{% block content %}
+
+<h1>Beneficiary Disputes</h1>
+<p class="muted">Review appeals filed by beneficiaries who believe they were incorrectly flagged. Every action is written to the audit chain.</p>
+
+<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
+  {% for d in disputes %}
+    <div class="card" style="border-left: 4px solid var(--warning);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div style="flex: 1; min-width: 300px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <h2 style="margin: 0; font-size: 1.15rem;">{{ d.beneficiary.full_name }}</h2>
+            <span class="pill" style="background: rgba(245,158,11,0.15); color: #fbbf24;">OPEN</span>
+          </div>
+          <p class="muted" style="margin: 0 0 12px 0; font-size: 0.85rem;">
+            ID: <span class="mono">{{ d.beneficiary.public_id|default:"—" }}</span> ·
+            Phone: <span class="mono">{{ d.beneficiary.phone }}</span> ·
+            Program: {{ d.beneficiary.program.name }}
+          </p>
+          <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border-left: 2px solid var(--warning);">
+            <div style="font-size: 0.7rem; color: var(--text-3); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Dispute Reason</div>
+            <div style="font-size: 0.9rem; color: var(--text-1);">{{ d.reason }}</div>
+          </div>
+          <p class="muted" style="margin: 12px 0 0 0; font-size: 0.75rem;">Filed {{ d.created_at|timesince }} ago</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; min-width: 200px;">
+          <form method="post" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="dispute_id" value="{{ d.id }}">
+            <button type="submit" name="action" value="CLEAR" class="btn-secondary" style="width: 100%; border-color: var(--success); color: var(--success); padding: 10px;">
+              ✓ Clear Beneficiary
+            </button>
+          </form>
+          <form method="post" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="dispute_id" value="{{ d.id }}">
+            <button type="submit" name="action" value="CONFIRM_FRAUD" style="width: 100%; background: rgba(239,68,68,0.1); box-shadow: none; border: 1px solid var(--danger); color: var(--danger); padding: 10px;">
+              ✗ Confirm Fraud
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="card" style="text-align: center; padding: 60px 20px;">
+      <div style="font-size: 3rem; margin-bottom: 12px;">✓</div>
+      <h2 style="color: var(--success); margin: 0 0 8px 0;">No Open Disputes</h2>
+      <p class="muted" style="margin: 0;">All beneficiary appeals have been resolved.</p>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top: 32px; border-color: var(--accent);">
+  <h3 style="margin-top: 0;">ℹ️ How Dispute Resolution Works</h3>
+  <p class="muted" style="font-size: 0.9rem; margin: 0;">
+    When a beneficiary is flagged, they can file an appeal. Program managers review the appeal and the detection flags.
+    <strong>Clear Beneficiary</strong> activates the record and clears the flags. <strong>Confirm Fraud</strong> rejects the appeal.
+    Both actions are logged to the HMAC audit chain with the reviewer's username and timestamp.
+  </p>
+</div>
+
+{% endblock %}

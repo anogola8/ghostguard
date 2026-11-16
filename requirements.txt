@@ -1,0 +1,26 @@
+# Core
+Django==5.2.6
+djangorestframework==3.16.1
+django-environ==0.11.2
+
+# Database
+psycopg[binary]==3.2.10
+
+# Detection (wired in Sprint 3, pinned now for reproducibility)
+rapidfuzz==3.14.0
+Pillow==11.3.0
+ImageHash==4.3.2
+
+# Background jobs
+celery==5.5.3
+redis==6.4.0
+
+# Reports
+WeasyPrint==66.0
+ReportLab==4.4.4
+
+# Testing & quality
+pytest==8.4.2
+pytest-django==4.11.1
+pytest-cov==7.0.0
+ruff==0.14.0qrcode[pil]==8.0

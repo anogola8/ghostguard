@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Forensic Attack Log{% endblock %}
+{% block content %}
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+  <div>
+    <h1>🚨 Forensic Attack Log</h1>
+    <p class="muted">Every detected intrusion attempt with full attacker context.</p>
+  </div>
+  <a href="{% url 'dashboard:security' %}" class="btn-secondary" style="padding: 8px 16px;">← Security Dashboard</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Attacks (24h)</div>
+    <div class="stat-value danger">{{ total_attacks_24h }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Unique Attacker IPs</div>
+    <div class="stat-value">{{ unique_ips }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Top Attack Type</div>
+    <div class="stat-value" style="font-size: 1.2rem;">
+      {% for t in attack_types|slice:":1" %}
+        {{ t.attack_type }}
+      {% empty %}
+        —
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if top_ips %}
+  <div class="card" style="margin-top: 24px; border-color: var(--danger);">
+    <h2 style="margin-top: 0; color: var(--danger);">🎯 Top Attacking IPs (24h)</h2>
+    <table>
+      <thead><tr><th>IP Address</th><th>Attempts</th></tr></thead>
+      <tbody>
+        {% for ip in top_ips %}
+          <tr><td class="mono" style="color: var(--danger);">{{ ip.ip_address }}</td><td class="bad">{{ ip.count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<div class="card" style="margin-top: 24px;">
+  <h2 style="margin-top: 0;">Recent Attack Attempts</h2>
+  <p class="muted" style="font-size: 0.85rem; margin-bottom: 16px;">Showing the latest 100 events. Every entry is also appended to the HMAC audit chain.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Type</th>
+        <th>Source IP</th>
+        <th>Path</th>
+        <th>User Agent</th>
+        <th>Payload</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+        <tr>
+          <td class="muted" style="font-size: 0.8rem; white-space: nowrap;">{{ log.created_at|date:"H:i:s" }}<br>{{ log.created_at|date:"Y-m-d" }}</td>
+          <td><span class="pill pill-flagged" style="font-size: 0.65rem;">{{ log.get_attack_type_display }}</span></td>
+          <td class="mono" style="font-size: 0.8rem; color: var(--danger);">{{ log.ip_address|default:"—" }}</td>
+          <td class="mono" style="font-size: 0.75rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ log.request_method }} {{ log.request_path }}</td>
+          <td class="muted" style="font-size: 0.75rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ log.user_agent|truncatechars:60 }}</td>
+          <td class="mono" style="font-size: 0.7rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3);">{{ log.payload }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted" style="text-align: center; padding: 40px;">✓ No attacks detected yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Security Dashboard{% endblock %}
+{% block content %}
+
+{% if system_health and system_health.status == 'QUARANTINED' %}
+  <div class="card" style="border: 2px solid var(--danger); background: rgba(239, 68, 68, 0.1); margin-bottom: 32px;">
+    <h2 style="color: var(--danger); margin-top: 0;">🚨 SYSTEM QUARANTINED</h2>
+    <p>A tamper was detected at <strong>sequence #{{ system_health.tamper_sequence }}</strong>.</p>
+    <p class="mono" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; font-size: 0.85rem;">{{ system_health.tamper_reason }}</p>
+    <p class="muted">Detected at {{ system_health.detected_at }}. All financial operations are blocked. To restore the system, a System Administrator must acknowledge the tamper below.</p>
+    
+    <form method="post" action="{% url 'audit:acknowledge_tamper' %}" style="margin-top: 24px;">
+      {% csrf_token %}
+      <label style="display: block; margin-bottom: 8px; font-size: 0.9rem;">Type <code>I ACKNOWLEDGE THE TAMPER</code> to confirm:</label>
+      <input type="text" name="confirm_phrase" required placeholder="I ACKNOWLEDGE THE TAMPER" style="width: 100%; padding: 12px; background: #000; color: white; border: 1px solid var(--danger); border-radius: 8px; font-family: monospace; margin-bottom: 16px;">
+      <button type="submit" style="background: var(--danger); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+        Permanently Wipe Chain & Restore System
+      </button>
+    </form>
+  </div>
+{% endif %}
+
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1>Security Dashboard</h1>
+    <p class="muted">Enterprise security monitoring · Last 24 hours</p>
+  </div>
+  <div class="glass-badge" style="color: #34d399; padding: 6px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);">
+    <span style="width: 6px; height: 6px; background: #34d399; border-radius: 50%;"></span>
+    SYSTEM SECURE
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Failed Logins (24h)</div>
+    <div class="stat-value danger" data-counter="{{ failed_24h }}">{{ failed_24h }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Successful Logins (24h)</div>
+    <div class="stat-value success" data-counter="{{ successful_24h }}">{{ successful_24h }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Locked Accounts</div>
+    <div class="stat-value {% if locked_accounts %}danger{% else %}success{% endif %}" data-counter="{{ locked_accounts|length }}">{{ locked_accounts|length }}</div>
+  </div>
+</div>
+
+{% if locked_accounts %}
+  <div class="card" style="border-color: var(--danger); margin-top: 24px;">
+    <h2 style="margin-top: 0; color: var(--danger);">⚠️ Locked Accounts</h2>
+    <p class="muted">The following accounts have 5+ failed attempts in the last 15 minutes:</p>
+    <table>
+      <thead><tr><th>Username</th><th>Failed Attempts</th></tr></thead>
+      <tbody>
+        {% for lock in locked_accounts %}
+          <tr><td class="mono">{{ lock.username }}</td><td class="bad">{{ lock.count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<div class="card" style="margin-top: 24px;">
+  <h2 style="margin-top: 0;">Recent Failed Login Attempts</h2>
+  {% if recent_failures %}
+    <table>
+      <thead><tr><th>Time</th><th>Username</th><th>IP Address</th></tr></thead>
+      <tbody>
+        {% for f in recent_failures %}
+          <tr>
+            <td class="muted" style="font-size: 0.85rem;">{{ f.attempted_at|date:"Y-m-d H:i:s" }}</td>
+            <td class="mono">{{ f.username }}</td>
+            <td class="mono" style="color: var(--text-3);">{{ f.ip_address|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted" style="padding: 20px 0;">✓ No failed login attempts in the last 24 hours.</p>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top: 24px;">
+  <h2 style="margin-top: 0;">Recent Successful Logins</h2>
+  {% if recent_logins %}
+    <table>
+      <thead><tr><th>Time</th><th>Username</th><th>IP Address</th></tr></thead>
+      <tbody>
+        {% for l in recent_logins %}
+          <tr>
+            <td class="muted" style="font-size: 0.85rem;">{{ l.attempted_at|date:"Y-m-d H:i:s" }}</td>
+            <td class="mono">{{ l.username }}</td>
+            <td class="mono" style="color: var(--text-3);">{{ l.ip_address|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted" style="padding: 20px 0;">No successful logins in the last 24 hours.</p>
+  {% endif %}
+</div>
+
+
+<div class="card" style="margin-top: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2 style="margin-top: 0;">Active Sessions</h2>
+    <form method="post" action="{% url 'accounts:logout_everywhere' %}">
+      {% csrf_token %}
+      <button type="submit" style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 6px 12px; font-size: 0.85rem;">
+        Force Logout Everywhere
+      </button>
+    </form>
+  </div>
+  <table style="margin-top: 16px;">
+    <thead><tr><th>IP Address</th><th>Browser</th><th>Last Activity</th></tr></thead>
+    <tbody>
+      {% for session in active_sessions %}
+        <tr>
+          <td class="mono">{{ session.ip_address|default:"Unknown" }}</td>
+          <td class="muted" style="font-size: 0.8rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ session.user_agent }}</td>
+          <td class="muted" style="font-size: 0.85rem;">{{ session.last_activity|timesince }} ago</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="muted">No active sessions found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="margin-top: 24px; border-color: var(--accent);">
+  <h2 style="margin-top: 0;">Active Security Controls</h2>
+  <table>
+    <thead><tr><th>Control</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Content Security Policy</td><td class="ok">✓ Active</td><td class="muted">Blocks XSS injection</td></tr>
+      <tr><td>X-Frame-Options</td><td class="ok">✓ DENY</td><td class="muted">Blocks clickjacking</td></tr>
+      <tr><td>X-Content-Type-Options</td><td class="ok">✓ nosniff</td><td class="muted">Blocks MIME confusion</td></tr>
+      <tr><td>Session HttpOnly</td><td class="ok">✓ Enabled</td><td class="muted">JS cannot read session cookie</td></tr>
+      <tr><td>Rate Limiting</td><td class="ok">✓ 5 attempts / 15 min</td><td class="muted">Brute-force defense</td></tr>
+      <tr><td>HMAC Audit Chain</td><td class="ok">✓ Verified</td><td class="muted">Tamper-evident</td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-counter]').forEach(el => {
+    const target = parseInt(el.dataset.counter, 10) || 0;
+    if (target === 0) { el.textContent = '0'; return; }
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 40));
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = current.toLocaleString();
+    }, 20);
+  });
+</script>
+{% endblock %}

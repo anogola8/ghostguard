@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Beneficiary Card - {{ beneficiary.public_id }}{% endblock %}
+{% block content %}
+
+<style>
+  .id-card {
+    max-width: 500px;
+    margin: 40px auto;
+    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(16,185,129,0.05), rgba(7,7,13,0.9));
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  /* Holographic sweep animation */
+  .id-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(99, 102, 241, 0.1) 60deg,
+      rgba(16, 185, 129, 0.1) 120deg,
+      transparent 180deg,
+      transparent 360deg
+    );
+    animation: rotate-seal 10s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes rotate-seal {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .qr-box {
+    background: white;
+    padding: 8px;
+    border-radius: 8px;
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .qr-box img { display: block; width: 110px; height: 110px; }
+  
+  .hash-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 12px;
+    flex: 1;
+    margin-right: 12px;
+    z-index: 1;
+  }
+  .glass-badge {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0 20px rgba(16,185,129,0.2);
+  }
+</style>
+
+<div class="id-card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; position: relative; z-index: 1;">
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; text-shadow: 0 0 10px rgba(255,255,255,0.2);">GhostGuard Beneficiary</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 6px; letter-spacing: -0.02em; text-shadow: 0 0 20px rgba(99,102,241,0.5);">{{ beneficiary.public_id }}</div>
+    </div>
+    <div class="glass-badge" style="color: #34d399; padding: 6px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+      <span style="width: 6px; height: 6px; background: #34d399; border-radius: 50%; box-shadow: 0 0 8px #34d399;"></span>
+      VERIFIED
+    </div>
+  </div>
+
+  <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; margin-bottom: 24px; position: relative; z-index: 1;">
+    <div style="margin-bottom: 16px;">
+      <div style="font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Full Name (Protected)</div>
+      <div style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-top: 4px;">
+        {{ beneficiary.full_name|slice:":3" }}*** {{ beneficiary.full_name|slice:"-1:" }}
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Program</div>
+        <div style="font-weight: 600; font-size: 0.95rem; color: #fff; margin-top: 4px;">{{ beneficiary.program.name }}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Village</div>
+        <div style="font-weight: 600; font-size: 0.95rem; color: #fff; margin-top: 4px;">{{ beneficiary.village|default:"—" }}</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <div style="font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Total Disbursed</div>
+      {% if total_paid > 0 %}
+        <div style="font-size: 1.8rem; font-weight: 800; color: #34d399; margin-top: 4px; letter-spacing: -0.02em; text-shadow: 0 0 20px rgba(16,185,129,0.3);">
+          KSh {{ total_paid|floatformat:2 }}
+        </div>
+      {% else %}
+        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; margin-top: 8px;">
+          ⏳ Awaiting First Payout
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1;">
+    <div class="hash-box">
+      <div style="font-size: 0.65rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; margin-bottom: 6px;">Cryptographic Hash</div>
+      {% if beneficiary.id_reference_hash %}
+        <div class="mono" style="font-size: 0.7rem; color: #c4b5fd; word-break: break-all; line-height: 1.4;">
+          {{ beneficiary.id_reference_hash|slice:":48" }}…
+        </div>
+      {% else %}
+        <div class="mono" style="font-size: 0.7rem; color: var(--text-3); font-style: italic;">
+          Awaiting identity verification
+        </div>
+      {% endif %}
+    </div>
+    {% if qr_data_url %}
+      <div class="qr-box">
+        <img src="{{ qr_data_url }}" alt="Verification QR">
+      </div>
+    {% endif %}
+  </div>
+
+  <p style="font-size: 0.7rem; color: var(--text-2); margin-top: 20px; position: relative; z-index: 1; text-align: center; letter-spacing: 0.03em;">
+    Scan QR to verify · Cryptographically linked to GhostGuard audit chain
+  </p>
+</div>
+
+<div class="card" style="max-width: 500px; margin: 24px auto;">
+  <h3 style="margin-top: 0; display: flex; justify-content: space-between;">
+    Payment History
+    <span class="muted" style="font-size: 0.8rem; font-weight: normal; align-self: center;">{{ payouts|length }} total</span>
+  </h3>
+  {% if payouts %}
+    <table>
+      <thead><tr><th>Date</th><th>Amount</th><th>Reference</th></tr></thead>
+      <tbody>
+        {% for p in payouts %}
+          <tr>
+            <td class="muted" style="font-size: 0.85rem;">{{ p.paid_at|date:"Y-m-d" }}</td>
+            <td class="mono" style="color: var(--success); font-weight: 600;">KSh {{ p.amount|floatformat:2 }}</td>
+            <td class="mono" style="font-size: 0.75rem;">
+              <a href="{% url 'beneficiaries:payout_receipt' p.id %}" style="color: var(--accent); text-decoration: none;">{{ p.reference }}</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="text-align: center; padding: 24px 0;">
+      <div class="muted" style="font-size: 0.9rem;">No payments received yet.</div>
+    </div>
+  {% endif %}
+</div>
+
+<p style="text-align: center; margin-top: 24px;">
+  <a href="{% url 'dashboard:public' %}" class="muted" style="text-decoration: none;">← View Public Impact Ledger</a>
+</p>
+
+{% endblock %}

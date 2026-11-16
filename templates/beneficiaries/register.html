@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Register Beneficiary{% endblock %}
+{% block content %}
+
+<div style="max-width: 640px; margin: 0 auto;">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <h1>Register Beneficiary</h1>
+    <p class="muted">Enter the details below. The detection engine will run automatically before saving.</p>
+  </div>
+
+  <div class="card">
+    <form method="post" id="reg-form">
+      {% csrf_token %}
+      
+      {% for field in form %}
+        <div style="margin-bottom: 20px;">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div class="muted" style="font-size: 0.75rem; margin-top: 4px;">{{ field.help_text }}</div>
+          {% endif %}
+          {% if field.errors %}
+            <div style="color: var(--danger); font-size: 0.85rem; margin-top: 4px;">{{ field.errors|striptags }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" style="width: 100%; margin-top: 8px; padding: 14px; font-size: 1rem;">
+        Run Detection & Register
+      </button>
+    </form>
+  </div>
+  
+  <p style="text-align: center; margin-top: 16px;">
+    <a href="{% url 'dashboard:directory' %}" class="muted" style="text-decoration: none;">← Back to Directory</a>
+  </p>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  const device = document.getElementById('id_device_id');
+  if (device) device.value = navigator.userAgent;
+</script>
+{% endblock %}

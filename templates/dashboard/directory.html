@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Beneficiary Directory{% endblock %}
+{% block content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="margin-bottom: 8px;">Directory</h1>
+    <p class="muted">All registered beneficiaries across programs.</p>
+  </div>
+  <form method="get" style="display: flex; gap: 8px;">
+    <input type="text" name="q" placeholder="Search name, phone, ID..." value="{{ request.GET.q|default:'' }}" style="width: 250px; margin: 0;">
+    <select name="status" style="width: 130px; margin: 0;" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+      <option value="FLAGGED" {% if request.GET.status == 'FLAGGED' %}selected{% endif %}>Flagged</option>
+      <option value="INACTIVE" {% if request.GET.status == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+    </select>
+    <button type="submit" class="btn-secondary" style="margin: 0;">Filter</button>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th><a href="?sort={% if request.GET.sort == 'full_name' %}-full_name{% else %}full_name{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" style="color: inherit; text-decoration: none;">Name ↕</a></th>
+        <th><a href="?sort={% if request.GET.sort == 'phone' %}-phone{% else %}phone{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" style="color: inherit; text-decoration: none;">Phone ↕</a></th>
+        <th>Village</th>
+        <th>Program</th>
+        <th>Status</th>
+        <th>Card</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in beneficiaries %}
+        <tr>
+          <td class="mono" style="font-size: 0.8rem;">{{ b.public_id|default:"Pending" }}</td>
+          <td><strong>{{ b.full_name }}</strong></td>
+          <td class="mono">{{ b.phone }}</td>
+          <td>{{ b.village }}</td>
+          <td>{{ b.program.name }}</td>
+          <td>
+            {% if b.status == 'ACTIVE' %}
+              <span class="pill pill-active">Active</span>
+            {% elif b.status == 'FLAGGED' %}
+              <span class="pill pill-flagged">Flagged</span>
+            {% else %}
+              <span class="pill pill-draft">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'beneficiaries:public_card' b.public_id %}" target="_blank" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">
+              View ID
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">No records found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+  <div class="muted" style="font-size: 0.85rem;">Page {{ page_obj.number }} of {{ paginator.num_pages }}</div>
+  <div style="display: flex; gap: 8px;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">← Prev</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Next →</a>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

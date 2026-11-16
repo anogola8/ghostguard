@@ -1,0 +1,96 @@
+﻿{% extends "base.html" %}
+{% block title %}GhostGuard — Home{% endblock %}
+{% block content %}
+
+<style>
+  .hero { text-align: center; padding: 40px 0 20px; }
+  .hero h1 { font-size: 2.4rem; margin-bottom: 16px; letter-spacing: -0.03em; line-height: 1.15; }
+  .hero p { font-size: 1.05rem; max-width: 620px; margin: 0 auto 8px; color: var(--text-2); }
+  
+  .integrity-banner {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 18px; border-radius: 999px;
+    font-size: 0.85rem; font-weight: 600; margin-top: 12px;
+    animation: glow 3s ease-in-out infinite;
+  }
+  .integrity-banner.ok { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+  .integrity-banner.bad { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); } 50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); } }
+  
+  .hero-actions { display: flex; justify-content: center; gap: 16px; margin-top: 32px; flex-wrap: wrap; }
+  .hero-actions a { padding: 14px 32px; font-size: 1rem; border-radius: 8px; }
+</style>
+
+<div class="hero">
+  <h1>Detect ghost beneficiaries.<br>Prove every payout.</h1>
+  <p>GhostGuard stops fake, duplicated and unverifiable beneficiaries from receiving aid — and leaves a tamper-evident record of every disbursement.</p>
+  
+  {% if user.is_authenticated and result %}
+    {% if result.ok %}
+      <div class="integrity-banner ok">● Chain integrity verified · {{ result.entries_checked }} entries</div>
+    {% else %}
+      <div class="integrity-banner bad">● Tamper detected at entry #{{ result.first_broken_sequence }}</div>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% if user.is_authenticated %}
+  <!-- Logged-in view: dashboard shortcuts -->
+  <div class="stat-grid" style="margin-top: 32px;">
+    <div class="stat-card">
+      <div class="stat-label">Audit Entries</div>
+      <div class="stat-value" data-counter="{{ entry_count }}">{{ entry_count }}</div>
+    </div>
+    {% if result %}
+      <div class="stat-card">
+        <div class="stat-label">Chain Status</div>
+        <div class="stat-value {% if result.ok %}success{% else %}danger{% endif %}" style="font-size: 1.4rem;">
+          {% if result.ok %}Intact{% else %}Tampered{% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="action-links" style="justify-content: center; margin-top: 40px;">
+    <a href="{% url 'dashboard:index' %}">→ Donor Dashboard</a>
+    <a href="{% url 'beneficiaries:register' %}">→ Register Beneficiary</a>
+    <a href="{% url 'programs:round_list' %}">→ Disbursement Rounds</a>
+    <a href="{% url 'audit:integrity' %}">→ Verify Chain</a>
+  </div>
+{% else %}
+  <!-- Anonymous view: Sign In + Create Account -->
+  <div style="text-align: center; margin-top: 24px;">
+    <div class="stat-grid" style="max-width: 380px; margin: 24px auto;">
+      <div class="stat-card">
+        <div class="stat-label">Audit Entries</div>
+        <div class="stat-value" data-counter="{{ entry_count }}">{{ entry_count }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-actions">
+    <a href="{% url 'accounts:login' %}" class="btn-secondary" style="border: 1px solid var(--card-border); background: var(--card-bg);">Sign In</a>
+    <a href="{% url 'accounts:signup' %}" class="btn">Create Account →</a>
+  </div>
+  
+  <div style="text-align: center; margin-top: 24px;">
+    <a href="{% url 'dashboard:public' %}" class="muted" style="text-decoration: none; font-size: 0.85rem;">Or view the public transparency ledger →</a>
+  </div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-counter]').forEach(el => {
+    const target = parseInt(el.dataset.counter, 10) || 0;
+    if (target === 0) return;
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 40));
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = current.toLocaleString();
+    }, 20);
+  });
+</script>
+{% endblock %}

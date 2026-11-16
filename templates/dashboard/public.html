@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Impact Ledger{% endblock %}
+{% block content %}
+
+<div style="text-align: center; margin-bottom: 40px;">
+  <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 6px 16px; border-radius: 999px; margin-bottom: 16px;">
+    <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></span>
+    <span style="color: #34d399; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.05em;">LIVE PUBLIC LEDGER</span>
+  </div>
+  <h1>Verified Impact Ledger</h1>
+  <p class="muted" style="max-width: 600px; margin: 0 auto;">This ledger is cryptographically signed and updated in real-time. Names are masked to protect beneficiary privacy in accordance with the Data Protection Act.</p>
+</div>
+
+<div class="stat-grid" style="margin-bottom: 32px;">
+  <div class="stat-card">
+    <div class="stat-label">Total Funds Disbursed</div>
+    <div class="stat-value success">KSh <span data-counter="{{ total_paid_all }}">{{ total_paid_all }}</span></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Chain Integrity Status</div>
+    <div style="margin-top: 8px;">
+      {% if verify_result.ok %}
+        <span class="ok" style="font-size: 1.2rem;">Verified Intact</span>
+        <div class="muted" style="font-size: 0.8rem; margin-top: 4px;">{{ verify_result.entries_checked }} entries checked</div>
+      {% else %}
+        <span class="bad" style="font-size: 1.2rem;">Tampered</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 32px;">
+  <h2 style="margin-top: 0; display: flex; justify-content: space-between;">
+    Active Programs
+    <span class="muted" style="font-size: 0.85rem; font-weight: normal; align-self: center;">{{ programs|length }} total</span>
+  </h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+    {% for p in programs %}
+      <div style="border: 1px solid var(--card-border); padding: 16px; border-radius: 8px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1.1rem;">{{ p.name }}</h3>
+        <div class="muted" style="font-size: 0.85rem; margin-bottom: 12px;">Donor: {{ p.donor }}</div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+          <span>{{ p.beneficiary_count }} Beneficiaries</span>
+          <span class="mono">KSh {{ p.total_paid|default:"0" }}</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top: 0;">Recent Verified Payouts</h2>
+  <p class="muted" style="font-size: 0.85rem; margin-bottom: 16px;">Every transaction below is linked to a cryptographic hash in the audit chain.</p>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Beneficiary</th><th>Village</th><th>Program</th><th>Amount</th><th>Reference</th></tr>
+    </thead>
+    <tbody>
+      {% for p in ledger_entries %}
+        <tr>
+          <td class="muted" style="font-size: 0.85rem;">{{ p.date|date:"Y-m-d H:i" }}</td>
+          <td><strong>{{ p.name }}</strong></td>
+          <td>{{ p.village }}</td>
+          <td>{{ p.program }}</td>
+          <td class="mono" style="color: var(--success);">KSh {{ p.amount|floatformat:2 }}</td>
+          <td class="mono muted" style="font-size: 0.75rem;">{{ p.reference }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted" style="text-align: center; padding: 20px;">No payouts recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-counter]').forEach(el => {
+    const target = parseFloat(el.dataset.counter) || 0;
+    if (target === 0) return;
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 40));
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = current.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }, 20);
+  });
+</script>
+{% endblock %}

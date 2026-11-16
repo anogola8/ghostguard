@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Bulk Import{% endblock %}
+{% block content %}
+
+<div style="max-width: 640px; margin: 0 auto;">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <h1>Bulk Import Beneficiaries</h1>
+    <p class="muted">Upload a CSV file to register multiple beneficiaries at once. The detection engine will run on every row.</p>
+  </div>
+
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <div style="margin-bottom: 20px;">
+        <label for="program">Assign to Program</label>
+        <select name="program" id="program" required>
+          <option value="">Select a program...</option>
+          {% for p in programs %}
+            <option value="{{ p.id }}">{{ p.name }} ({{ p.donor }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="csv_file">CSV File</label>
+        <input type="file" name="csv_file" id="csv_file" accept=".csv" required style="padding: 10px; background: rgba(0,0,0,0.2); border: 1px dashed var(--card-border); width: 100%; border-radius: 8px;">
+        <div class="muted" style="font-size: 0.75rem; margin-top: 8px;">
+          Format required: <code>full_name, phone, village, id_reference</code>
+        </div>
+      </div>
+
+      <button type="submit" style="width: 100%; padding: 14px; font-size: 1rem;">
+        ⬆ Upload & Process
+      </button>
+    </form>
+  </div>
+  
+  <p style="text-align: center; margin-top: 16px;">
+    <a href="{% url 'dashboard:directory' %}" class="muted" style="text-decoration: none;">← Back to Directory</a>
+  </p>
+</div>
+
+{% endblock %}

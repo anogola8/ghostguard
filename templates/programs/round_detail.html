@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Round Details{% endblock %}
+{% block content %}
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+  <div>
+    <a href="{% url 'programs:round_list' %}" class="muted" style="text-decoration: none; font-size: 0.9rem;">← Back to Portfolio</a>
+    <h1 style="margin-top: 12px; margin-bottom: 8px;">{{ round.program.name }}</h1>
+    <p class="muted">Disbursement Round #{{ round.id }} · {{ round.program.donor }}</p>
+  </div>
+  <div>
+    {% if round.status == 'DRAFT' %}
+      <span class="pill pill-draft" style="font-size: 1rem; padding: 8px 16px;">Draft</span>
+    {% elif round.status == 'APPROVED' %}
+      <span class="pill pill-approved" style="font-size: 1rem; padding: 8px 16px;">Approved</span>
+    {% else %}
+      <span class="pill pill-locked" style="font-size: 1rem; padding: 8px 16px;">Locked</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns: 1fr 1fr;">
+  <div class="stat-card">
+    <div class="stat-label">Total Round Amount</div>
+    <div class="stat-value">KSh {{ round.amount|floatformat:2 }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Paid Out</div>
+    <div class="stat-value success">KSh {{ total_paid|floatformat:2 }}</div>
+  </div>
+</div>
+
+{% if round.status == 'DRAFT' %}
+  <div class="card" style="margin-top: 24px; text-align: center; border-color: var(--accent);">
+    <h2>Approve this Round</h2>
+    <p class="muted">Approving this round allows the field officers to process payouts. It cannot be un-approved.</p>
+    <form method="post" action="{% url 'programs:lock_round' round.pk %}" style="margin-top: 16px;">
+      {% csrf_token %}
+      <button type="submit" style="padding: 14px 28px; font-size: 1.1rem;">Approve Round</button>
+    </form>
+  </div>
+{% elif round.status == 'APPROVED' %}
+  <div id="payout-panel" class="card" style="margin-top: 24px; text-align: center; border-color: var(--success); background: linear-gradient(180deg, rgba(16,185,129,0.05) 0%, rgba(0,0,0,0) 100%);">
+    <div id="payout-ready">
+      <h2>Ready to Disburse</h2>
+      <p class="muted">Clicking below will pay <strong>{{ active_count }}</strong> active beneficiaries via the Autonomous Payout Engine.</p>
+      <form method="post" action="{% url 'programs:process_payouts' round.pk %}" style="margin-top: 16px;" onsubmit="startPayoutSimulation(event);">
+        {% csrf_token %}
+        <button type="submit" id="disburse-btn" style="background: linear-gradient(135deg, #10b981, #059669); padding: 16px 32px; font-size: 1.2rem; box-shadow: 0 8px 24px rgba(16,185,129,0.4);">
+          💸 Initialize Payout Engine
+        </button>
+      </form>
+    </div>
+
+    <!-- Hidden Terminal Console -->
+    <div id="payout-terminal" style="display: none; text-align: left;">
+      <div style="background: #000; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.85rem; color: #10b981; border: 1px solid var(--success); height: 200px; overflow-y: auto; box-shadow: inset 0 0 20px rgba(16,185,129,0.1);">
+        <div id="terminal-output">> Initializing GhostGuard Autonomous Disbursement Engine...</div>
+      </div>
+      <div style="margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span class="muted">Progress</span>
+          <span id="progress-text" class="mono">0 / {{ active_count }}</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+          <div id="progress-bar" style="background: var(--success); width: 0%; height: 100%; transition: width 0.2s;"></div>
+        </div>
+      </div>
+      <p class="muted" style="text-align: center; margin-top: 16px; font-size: 0.8rem;">Please do not close this window. Submitting to audit chain...</p>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card" style="margin-top: 24px;">
+  <h2 style="margin-top: 0; display: flex; justify-content: space-between;">
+    Program Beneficiaries
+    <span class="muted" style="font-size: 0.85rem; font-weight: normal; align-self: center;">{{ round.program.beneficiaries.count }} total</span>
+  </h2>
+  <table>
+    <thead>
+      <tr><th>Beneficiary</th><th>Phone</th><th>Village</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for b in round.program.beneficiaries.all|slice:":50" %}
+        <tr>
+          <td>
+            <strong>{{ b.full_name }}</strong><br>
+            <span class="mono" style="font-size: 0.75rem; color: var(--text-3);">{{ b.public_id|default:"No ID" }}</span>
+          </td>
+          <td class="mono">{{ b.phone }}</td>
+          <td>{{ b.village }}</td>
+          <td>
+            {% if b.status == 'ACTIVE' %}
+              <span class="pill pill-active">Active</span>
+            {% elif b.status == 'FLAGGED' %}
+              <span class="pill pill-flagged">Flagged</span>
+            {% else %}
+              <span class="pill pill-draft">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="muted" style="text-align: center; padding: 24px;">No beneficiaries registered for this program yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if round.program.beneficiaries.count > 50 %}
+    <p class="muted" style="text-align: center; font-size: 0.85rem; margin-top: 12px;">Showing 50 of {{ round.program.beneficiaries.count }} records. Use the Directory for full search.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function startPayoutSimulation(event) {
+    // Prevent immediate form submission
+    event.preventDefault();
+    const form = event.target;
+    
+    // UI Transitions
+    document.getElementById('payout-ready').style.display = 'none';
+    const terminal = document.getElementById('payout-terminal');
+    terminal.style.display = 'block';
+    
+    const output = document.getElementById('terminal-output');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    const total = {{ active_count }};
+    let current = 0;
+    
+    // Simulate terminal output
+    const messages = [
+      "> Connecting to M-Pesa API gateway...",
+      "> Authenticating service account...",
+      "> Fetching active beneficiary ledger...",
+      "> Batching transactions (50 per batch)...",
+      "> Writing to HMAC audit chain...",
+      "> Verifying chain integrity..."
+    ];
+
+    let msgIndex = 0;
+    const msgTimer = setInterval(() => {
+      if (msgIndex < messages.length) {
+        output.innerHTML += `<br>> ${messages[msgIndex]}`;
+        output.scrollTop = output.scrollHeight;
+        msgIndex++;
+      }
+    }, 400);
+
+    // Simulate the progress bar moving
+    const progressTimer = setInterval(() => {
+      current += Math.floor(Math.random() * 3) + 1;
+      if (current > total) current = total;
+      
+      const pct = (current / total) * 100;
+      progressBar.style.width = pct + '%';
+      progressText.innerText = `${current} / ${total}`;
+      
+      if (current % 10 === 0 && current > 0) {
+        output.innerHTML += `<br><span style="color:#34d399">> Success: Paid batch of 10 (Code: Q${Math.random().toString(16).substr(2, 8).toUpperCase()})</span>`;
+        output.scrollTop = output.scrollHeight;
+      }
+
+      if (current >= total) {
+        clearInterval(progressTimer);
+        clearInterval(msgTimer);
+        output.innerHTML += `<br><br><span style="color:#6366f1; font-weight:bold;">> DISBURSEMENT COMPLETE. REDIRECTING...</span>`;
+        output.scrollTop = output.scrollHeight;
+        
+        // Actually submit the form to trigger the backend logic
+        setTimeout(() => {
+          form.submit();
+        }, 1500);
+      }
+    }, 100);
+  }
+</script>
+{% endblock %}

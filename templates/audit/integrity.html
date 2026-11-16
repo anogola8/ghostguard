@@ -1,0 +1,40 @@
+﻿{% extends "base.html" %}
+{% block title %}Chain Integrity{% endblock %}
+{% block content %}
+<h1>Chain Integrity</h1>
+<p class="muted">Every event is HMAC-hashed with the previous entry. Click below to verify the entire chain.</p>
+<div class="card" style="margin-top:20px">
+  <form method="post" style="margin:0">
+    {% csrf_token %}
+    <button type="submit" style="font-size:1rem;padding:14px 28px">🔒 Verify integrity</button>
+  </form>
+  {% if result %}
+    <div style="margin-top:20px">
+      {% if result.ok %}
+        <div class="alert alert-success" style="margin-bottom:0"><strong>✓ Chain intact.</strong> {{ result.entries_checked }} entries verified.</div>
+      {% else %}
+        <div class="alert alert-error" style="margin-bottom:0"><strong>✗ Tamper detected at sequence #{{ result.first_broken_sequence }}.</strong><br>{{ result.reason }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+<div class="card" style="margin-top:24px">
+  <h2 style="margin-top:0">Recent entries</h2>
+  <table>
+    <thead><tr><th>#</th><th>Event</th><th>Actor</th><th>Hash</th><th>Time</th></tr></thead>
+    <tbody>
+      {% for e in recent %}
+        <tr>
+          <td class="mono">{{ e.sequence }}</td>
+          <td>{{ e.get_event_type_display }}</td>
+          <td>{{ e.actor_username|default:"—" }}</td>
+          <td class="mono" style="color:#c4b5fd">{{ e.entry_hash|slice:":16" }}…</td>
+          <td class="muted" style="font-size:0.85rem">{{ e.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">No entries yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
