@@ -115,3 +115,4 @@ Following Kenya Data Protection Act, 2019:
 
 Academic project. Not licensed for production use without review.
 
+# ghostguard
